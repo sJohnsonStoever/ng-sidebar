@@ -8,6 +8,7 @@ import {
   Input,
   OnChanges,
   OnDestroy,
+  OnInit,
   Output,
   SimpleChanges,
   ViewChild,
@@ -80,7 +81,7 @@ import { SidebarService } from './sidebar.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None
 })
-export class Sidebar implements AfterContentInit, OnChanges, OnDestroy {
+export class Sidebar implements OnInit, AfterContentInit, OnChanges, OnDestroy {
   // `openedChange` allows for 2-way data binding
   @Input() opened: boolean = false;
   @Output() openedChange: EventEmitter<boolean> = new EventEmitter<boolean>();
@@ -123,6 +124,12 @@ export class Sidebar implements AfterContentInit, OnChanges, OnDestroy {
   private _onClickOutsideAttached: boolean = false;
   private _onKeyDownAttached: boolean = false;
 
+  private _startX: number = 0;
+  private _currentX: number = 0;
+  private _touchingSideNav: boolean = false;
+
+  private _supportsPassive: boolean;
+
   constructor(
     @Inject(DOCUMENT) private _document /*: HTMLDocument */,
     private _sidebarService: SidebarService) {
@@ -130,9 +137,17 @@ export class Sidebar implements AfterContentInit, OnChanges, OnDestroy {
     this.close = this.close.bind(this);
 
     this._onTransitionEnd = this._onTransitionEnd.bind(this);
+    this._onTouchStart = this._onTouchStart.bind(this);
+    this._onTouchMove = this._onTouchMove.bind(this);
+    this._onTouchEnd = this._onTouchEnd.bind(this);
+    this._update = this._update.bind(this);
     this._onFocusTrap = this._onFocusTrap.bind(this);
     this._onClickOutside = this._onClickOutside.bind(this);
     this._onKeyDown = this._onKeyDown.bind(this);
+  }
+
+  ngOnInit() {
+    this._initTouchHandlers();
   }
 
   ngAfterContentInit(): void {
@@ -173,6 +188,7 @@ export class Sidebar implements AfterContentInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this._destroyTouchHandlers();
     this._destroyCloseListeners();
 
     this._openSub.unsubscribe();
@@ -358,6 +374,70 @@ export class Sidebar implements AfterContentInit, OnChanges, OnDestroy {
   }
 
 
+  // Touch support
+  // ==============================================================================================
+
+  _initTouchHandlers() {
+    this._elSidebar.nativeElement.addEventListener('touchstart', this._onTouchStart, this._applyPassive());
+    this._elSidebar.nativeElement.addEventListener('touchmove', this._onTouchMove, this._applyPassive());
+    this._elSidebar.nativeElement.addEventListener('touchend', this._onTouchEnd);
+  }
+
+  _destroyTouchHandlers() {
+    this._elSidebar.nativeElement.removeEventListener('touchstart', this._onTouchStart);
+    this._elSidebar.nativeElement.removeEventListener('touchmove', this._onTouchMove);
+    this._elSidebar.nativeElement.removeEventListener('touchend', this._onTouchEnd);
+  }
+
+  _onTouchStart(e: TouchEvent) {
+    if (!this.opened) {
+      return;
+    }
+
+    this._startX = e.touches[0].pageX;
+    this._currentX = this._startX;
+
+    this._touchingSideNav = true;
+    requestAnimationFrame(this._update);
+  }
+
+  _onTouchMove(e: TouchEvent) {
+    if (!this._touchingSideNav) {
+      return;
+    }
+
+    this._currentX = e.touches[0].pageX;
+  }
+
+  _onTouchEnd(e: TouchEvent) {
+    if (!this._touchingSideNav) {
+      return;
+    }
+
+    this._currentX = e.touches[0].pageX;
+
+    this._touchingSideNav = false;
+
+    const translateX = Math.min(0, this._currentX - this._startX);
+    // this.sideNavContainerEl.style.transform = '';
+
+    if (translateX < 0) {
+      this.close();
+    }
+  }
+
+  _update() {
+    if (!this._touchingSideNav) {
+      return;
+    }
+
+    requestAnimationFrame(this._update);
+
+    // const translateX = Math.min(0, this.currentX - this.startX);
+    // this.sideNavContainerEl.style.transform = `translateX(${translateX}px)`;
+  }
+
+
   // Close event handlers
   // ==============================================================================================
 
@@ -497,5 +577,29 @@ export class Sidebar implements AfterContentInit, OnChanges, OnDestroy {
     }
 
     return dir === 'ltr';
+  }
+
+  // From https://github.com/GoogleChrome/ui-element-samples/blob/gh-pages/side-nav/side-nav.js#L49
+  private _applyPassive(): any {
+    if (this._supportsPassive !== undefined) {
+      return this._supportsPassive ? { passive: true } : false;
+    }
+
+    // Feature detect
+    let isSupported = false;
+    try {
+      // https://github.com/Microsoft/TypeScript/issues/9548
+      document.addEventListener('test', null, {
+        get passive() {
+          isSupported = true;
+          return;
+        }
+      } as any);
+    } catch (e) {
+      // Ignore
+    }
+
+    this._supportsPassive = isSupported;
+    return this._applyPassive();
   }
 }
