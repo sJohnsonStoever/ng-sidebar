@@ -1,5 +1,4 @@
 import {
-  AfterContentInit,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
@@ -81,7 +80,7 @@ import { SidebarService } from './sidebar.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None
 })
-export class Sidebar implements OnInit, AfterContentInit, OnChanges, OnDestroy {
+export class Sidebar implements OnInit, OnChanges, OnDestroy {
   // `openedChange` allows for 2-way data binding
   @Input() opened: boolean = false;
   @Output() openedChange: EventEmitter<boolean> = new EventEmitter<boolean>();
@@ -148,16 +147,14 @@ export class Sidebar implements OnInit, AfterContentInit, OnChanges, OnDestroy {
 
   ngOnInit() {
     this._initTouchHandlers();
-  }
 
-  ngAfterContentInit(): void {
     this._openSub = this._sidebarService.onOpen(this.open);
     this._closeSub = this._sidebarService.onClose(this.close);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['opened']) {
-      if (this.opened) {
+      if (changes['opened'].currentValue) {
         this.open();
       } else {
         this.close();
@@ -169,7 +166,7 @@ export class Sidebar implements OnInit, AfterContentInit, OnChanges, OnDestroy {
     }
 
     if (changes['position']) {
-      // Handle 'start' and 'end' aliases
+      // Handle "start" and "end" aliases
       if (this.position === 'start') {
         this.position = this._isLTR ? 'left' : 'right';
       } else if (this.position === 'end') {
@@ -208,10 +205,10 @@ export class Sidebar implements OnInit, AfterContentInit, OnChanges, OnDestroy {
 
     this.onOpenStart.emit();
 
+    this._elSidebar.nativeElement.addEventListener('transitionend', this._onTransitionEnd);
+
     this._setFocused();
     this._initCloseListeners();
-
-    this._elSidebar.nativeElement.addEventListener('transitionend', this._onTransitionEnd);
 
     if (!this.animate) {
       setTimeout(() => {
@@ -309,9 +306,9 @@ export class Sidebar implements OnInit, AfterContentInit, OnChanges, OnDestroy {
   }
 
   /**
-   * Focuses the first focusable element inside the sidebar.
+   * Sets focus to the first focusable element inside the sidebar.
    */
-  private _setFocusToFirstItem(): void {
+  private _focusFirstItem(): void {
     if (this._focusableElements && this._focusableElements.length) {
       this._focusableElements[0].focus();
     }
@@ -322,7 +319,7 @@ export class Sidebar implements OnInit, AfterContentInit, OnChanges, OnDestroy {
    */
   private _onFocusTrap(e: FocusEvent): void {
     if (this._shouldTrapFocus && !this._elSidebar.nativeElement.contains(e.target)) {
-      this._setFocusToFirstItem();
+      this._focusFirstItem();
     }
   }
 
@@ -349,7 +346,7 @@ export class Sidebar implements OnInit, AfterContentInit, OnChanges, OnDestroy {
       }
 
       if (this.autoFocus) {
-        this._setFocusToFirstItem();
+        this._focusFirstItem();
       }
 
       this._document.body.addEventListener('focus', this._onFocusTrap, true);
@@ -562,7 +559,7 @@ export class Sidebar implements OnInit, AfterContentInit, OnChanges, OnDestroy {
   /**
    * Returns whether the page is in LTR mode. Defaults to `true` if it can't be computed.
    *
-   * @return {boolean} Page is LTR.
+   * @return {boolean} Page's language direction is left-to-right.
    */
   private get _isLTR(): boolean {
     let dir: string = 'ltr';
