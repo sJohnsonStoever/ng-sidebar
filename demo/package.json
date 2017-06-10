@@ -23,6 +23,7 @@
     "@angular/core": "^4.1.3",
     "@angular/platform-browser": "^4.1.3",
     "@angular/platform-browser-dynamic": "^4.1.3",
+    "@angular/router": "^4.1.3",
     "es6-shim": "^0.35.3",
     "ng-sidebar": "file:../",
     "reflect-metadata": "^0.1.10",

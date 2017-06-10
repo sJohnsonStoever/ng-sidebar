@@ -41,6 +41,10 @@ import { Component, AnimationTransitionEvent } from '@angular/core';
         <span>ng-sidebar</span>
       </header>
 
+      <a [routerLink]="['/pageB']">
+        Go To Page B
+      </a>
+
       <section class="demo-contents">
         <h1>Options</h1>
 
