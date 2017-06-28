@@ -4,17 +4,15 @@ import {
   ChangeDetectorRef,
   Component,
   EventEmitter,
-  Inject,
   Input,
   OnChanges,
   OnDestroy,
   Output,
-  PLATFORM_ID,
   SimpleChanges
 } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
 
 import { Sidebar } from './sidebar.component';
+import { isBrowser } from './utils';
 
 // Based on https://github.com/angular/material2/tree/master/src/lib/sidenav
 @Component({
@@ -26,45 +24,53 @@ import { Sidebar } from './sidebar.component';
       [ngClass]="backdropClass"
       (click)="_onBackdropClicked()"></div>
 
+    <ng-content select="ng-sidebar"></ng-content>
+
     <div class="ng-sidebar__content"
-      [ngClass]="sidebarContentClass"
+      [class.ng-sidebar__content--animate]="animate"
+      [ngClass]="contentClass"
       [ngStyle]="_getContentStyles()">
-      <ng-content></ng-content>
+      <ng-content select="[ng-sidebar-content]"></ng-content>
     </div>
   `,
-  styles: [`
+  styles: [
+    `
     :host {
       box-sizing: border-box;
       display: block;
-      overflow: hidden;
       position: relative;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
     }
 
     .ng-sidebar__backdrop {
-      background: #000;
-      height: 100%;
+      position: absolute;
+      top: 0;
+      bottom: 0;
       left: 0;
+      right: 0;
+      background: #000;
       opacity: 0.75;
       pointer-events: auto;
-      position: fixed;
-      top: 0;
-      width: 100%;
       z-index: 99999998;
     }
 
     .ng-sidebar__content {
-      display: block;
-      height: 100%;
+      overflow: auto;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
     }
 
-      :host.ng-sidebar-container--animate .ng-sidebar__content {
-        -webkit-transition: -webkit-transform 0.3s cubic-bezier(0, 0, 0.3, 1), padding 0.3s cubic-bezier(0, 0, 0.3, 1);
-        transition: transform 0.3s cubic-bezier(0, 0, 0.3, 1), padding 0.3s cubic-bezier(0, 0, 0.3, 1);
-      }
-  `],
-  host: {
-    '[class.ng-sidebar-container--animate]': 'animate'
-  },
+    .ng-sidebar__content--animate {
+      -webkit-transition: -webkit-transform 0.3s cubic-bezier(0, 0, 0.3, 1), padding 0.3s cubic-bezier(0, 0, 0.3, 1);
+      transition: transform 0.3s cubic-bezier(0, 0, 0.3, 1), padding 0.3s cubic-bezier(0, 0, 0.3, 1);
+    }
+  `
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SidebarContainer implements AfterContentInit, OnChanges, OnDestroy {
@@ -74,27 +80,29 @@ export class SidebarContainer implements AfterContentInit, OnChanges, OnDestroy 
   @Input() showBackdrop: boolean = false;
   @Output() showBackdropChange = new EventEmitter<boolean>();
 
-  @Input() sidebarContentClass: string;
+  @Input() contentClass: string;
   @Input() backdropClass: string;
-
-  private _isBrowser: boolean;
 
   private _sidebars: Array<Sidebar> = [];
 
-  constructor(
-    private _ref: ChangeDetectorRef,
-    @Inject(PLATFORM_ID) platformId: Object) {
-    this._isBrowser = isPlatformBrowser(platformId);
+  private _isBrowser: boolean;
+
+  constructor(private _ref: ChangeDetectorRef) {
+    this._isBrowser = isBrowser();
   }
 
   ngAfterContentInit(): void {
-    if (!this._isBrowser) { return; }
+    if (!this._isBrowser) {
+      return;
+    }
 
     this._onToggle();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (!this._isBrowser) { return; }
+    if (!this._isBrowser) {
+      return;
+    }
 
     if (changes['showBackdrop']) {
       this.showBackdropChange.emit(changes['showBackdrop'].currentValue);
@@ -102,7 +110,9 @@ export class SidebarContainer implements AfterContentInit, OnChanges, OnDestroy 
   }
 
   ngOnDestroy(): void {
-    if (!this._isBrowser) { return; }
+    if (!this._isBrowser) {
+      return;
+    }
 
     this._unsubscribe();
   }
@@ -142,9 +152,9 @@ export class SidebarContainer implements AfterContentInit, OnChanges, OnDestroy 
    */
   _getContentStyles(): CSSStyleDeclaration {
     let left = 0,
-        right = 0,
-        top = 0,
-        bottom = 0;
+      right = 0,
+      top = 0,
+      bottom = 0;
 
     let transformStyle: string = null;
     let heightStyle: string = null;

@@ -4,6 +4,4 @@ import { Component } from '@angular/core';
   selector: 'main',
   template: '<router-outlet></router-outlet>'
 })
-export class MainComponent {
-
-}
+export class MainComponent {}
