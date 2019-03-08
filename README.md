@@ -6,7 +6,7 @@
 
 *Formerly called [ng2-sidebar](https://github.com/arkon/ng2-sidebar)*
 
-An Angular 2+ sidebar component.
+An Angular sidebar component.
 
 
 ## Installation
@@ -179,6 +179,7 @@ If you are using Angular's default emulated view encapsulation, you may have to 
 | Property name | Callback arguments | Description |
 | ------------- | ------------------ | ----------- |
 | showBackdropChange | `showBackdrop: boolean` | Emitted when `showBackdrop` is modified. This allows for you to do "two-way binding" (i.e. `[(showBackdrop)]`). |
+| onBackdropClicked | | Emitted when a backdrop is clicked. |
 
 
 ### `<ng-sidebar>`
@@ -194,6 +195,7 @@ If you are using Angular's default emulated view encapsulation, you may have to 
 | position | `'left'`, `'right'`, `'top'`, `'bottom'`, `'start'`, `'end'` | `'start'` | What side the sidebar should be docked to. `'start'` and `'end'` are aliases that respect the page's language (e.g. `start` is the same as `left` for English, but would be `right` for Hebrew. |
 | autoCollapseHeight | number | | Window height in pixels in which to automatically close the sidebar. |
 | autoCollapseWidth | number | | Window width in pixels in which to automatically close the sidebar. |
+| autoCollapseOnInit | boolean | `true` | Collapse sidebar based on `autoCollapseHeight` and/or `autoCollapseWidth` on initial render as needed. |
 | animate | boolean | `true` | Animate the opening/closing of the sidebar. |
 | sidebarClass | string | | Additional class name on the sidebar element. |
 | ariaLabel | string | | Value for the sidebar's `aria-label` attribute. |
@@ -214,6 +216,7 @@ If you are using Angular's default emulated view encapsulation, you may have to 
 | onOpened | | Emitted when the sidebar is opened. |
 | onCloseStart | | Emitted when the sidebar is closing. |
 | onClosed | | Emitted when the sidebar is closed. |
+| onTransitionEnd | | Emitted when the animation for opening or closing ends. |
 | onModeChange | `mode: string` | Emitted when `mode` is changed. |
 | onPositionChange | `position: string` | Emitted when `position` is changed. |
 

@@ -1,6 +1,6 @@
 {
   "name": "ng-sidebar",
-  "version": "6.0.4",
+  "version": "8.0.0",
   "description": "Angular sidebar component.",
   "repository": {
     "type": "git",
@@ -20,10 +20,7 @@
   "license": "MIT",
   "keywords": [
     "angular",
-    "angular2",
-    "angular4",
-    "ng2",
-    "ng4",
+    "ng",
     "sidebar",
     "component"
   ],
@@ -32,22 +29,22 @@
   "scripts": {
     "lint": "tslint --project tsconfig.json src/**/*.ts",
     "build": "npm run lint && rimraf lib && ngc",
-    "prepublish": "npm run build"
+    "prepare": "npm run build"
   },
   "peerDependencies": {
-    "@angular/core": ">=2.3.0",
-    "@angular/common": ">=2.3.0"
+    "@angular/core": ">=6.0.0",
+    "@angular/common": ">=6.0.0"
   },
   "devDependencies": {
-    "@angular/common": "^5.0.3",
-    "@angular/compiler": "^5.0.3",
-    "@angular/compiler-cli": "^5.0.3",
-    "@angular/core": "^5.0.3",
-    "@angular/platform-browser": "^5.0.3",
+    "@angular/common": "^6.1.0",
+    "@angular/compiler": "^6.1.0",
+    "@angular/compiler-cli": "^6.1.0",
+    "@angular/core": "^6.1.0",
+    "@angular/platform-browser": "^6.1.0",
     "rimraf": "^2.6.2",
-    "rxjs": "^5.5.2",
-    "tslint": "^5.8.0",
-    "typescript": "^2.4.2",
-    "zone.js": "^0.8.18"
+    "rxjs": "^6.2.2",
+    "tslint": "^5.11.0",
+    "typescript": "^2.7.0",
+    "zone.js": "^0.8.26"
   }
 }

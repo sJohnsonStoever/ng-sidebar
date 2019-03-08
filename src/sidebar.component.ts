@@ -94,6 +94,7 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
 
   @Input() autoCollapseHeight: number;
   @Input() autoCollapseWidth: number;
+  @Input() autoCollapseOnInit: boolean = true;
 
   @Input() sidebarClass: string;
 
@@ -112,6 +113,7 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
   @Output() onOpened: EventEmitter<null> = new EventEmitter<null>();
   @Output() onCloseStart: EventEmitter<null> = new EventEmitter<null>();
   @Output() onClosed: EventEmitter<null> = new EventEmitter<null>();
+  @Output() onTransitionEnd: EventEmitter<null> = new EventEmitter<null>();
   @Output() onModeChange: EventEmitter<string> = new EventEmitter<string>();
   @Output() onPositionChange: EventEmitter<string> = new EventEmitter<string>();
 
@@ -125,6 +127,9 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
     'textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex], [contenteditable]';
   private _focusableElements: Array<HTMLElement>;
   private _focusedBeforeOpen: HTMLElement;
+
+  private _tabIndexAttr: string = '__tabindex__';
+  private _tabIndexIndicatorAttr: string = '__ngsidebar-tabindex__';
 
   private _wasCollapsed: boolean;
 
@@ -142,7 +147,7 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
     if (!this._container) {
       throw new Error(
         '<ng-sidebar> must be inside a <ng-sidebar-container>. ' +
-          'See https://github.com/arkon/ng-sidebar#usage for more info.'
+        'See https://github.com/arkon/ng-sidebar#usage for more info.'
       );
     }
 
@@ -161,7 +166,7 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
     this._onFocusTrap = this._onFocusTrap.bind(this);
     this._onClickOutside = this._onClickOutside.bind(this);
     this._onKeyDown = this._onKeyDown.bind(this);
-    this._onResize = this._onResize.bind(this);
+    this._collapse = this._collapse.bind(this);
   }
 
   ngOnInit() {
@@ -175,6 +180,10 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
     }
 
     this._container._addSidebar(this);
+
+    if (this.autoCollapseOnInit) {
+      this._collapse();
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -186,21 +195,19 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
       this._shouldAnimate = changes['animate'].currentValue;
     }
 
-    if (changes['opened']) {
-      if (this._shouldAnimate) {
-        this.animate = true;
-        this._shouldAnimate = false;
-      }
-
-      if (changes['opened'].currentValue) {
-        this.open();
+    if (changes['closeOnClickOutside']) {
+      if (changes['closeOnClickOutside'].currentValue) {
+        this._initCloseClickListener();
       } else {
-        this.close();
+        this._destroyCloseClickListener();
       }
     }
-
-    if (changes['closeOnClickOutside'] || changes['keyClose']) {
-      this._initCloseListeners();
+    if (changes['keyClose']) {
+      if (changes['keyClose'].currentValue) {
+        this._initCloseKeyDownListener();
+      } else {
+        this._destroyCloseKeyDownListener();
+      }
     }
 
     if (changes['position']) {
@@ -225,6 +232,19 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
 
     if (changes['autoCollapseHeight'] || changes['autoCollapseWidth']) {
       this._initCollapseListeners();
+    }
+
+    if (changes['opened']) {
+      if (this._shouldAnimate) {
+        this.animate = true;
+        this._shouldAnimate = false;
+      }
+
+      if (changes['opened'].currentValue) {
+        this.open();
+      } else {
+        this.close();
+      }
     }
   }
 
@@ -321,7 +341,7 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
    * @return {CSSStyleDeclaration} The transform styles, with the WebKit-prefixed version as well.
    */
   _getStyle(): CSSStyleDeclaration {
-    let transformStyle: string = null;
+    let transformStyle: string = '';
 
     // Hides sidebar off screen when closed
     if (!this.opened) {
@@ -360,6 +380,8 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
         this._destroyCloseListeners();
         this.onClosed.emit();
       }
+
+      this.onTransitionEnd.emit();
 
       this._elSidebar.nativeElement.removeEventListener('transitionend', this._onTransitionEnd);
     }
@@ -409,12 +431,14 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
 
       // Restore focusability, with previous tabindex attributes
       for (const el of this._focusableElements) {
-        const prevTabIndex = el.getAttribute('__tabindex__');
+        const prevTabIndex = el.getAttribute(this._tabIndexAttr);
+        const wasTabIndexSet = el.getAttribute(this._tabIndexIndicatorAttr) !== null;
         if (prevTabIndex !== null) {
           el.setAttribute('tabindex', prevTabIndex);
-          el.removeAttribute('__tabindex__');
-        } else {
+          el.removeAttribute(this._tabIndexAttr);
+        } else if (wasTabIndexSet) {
           el.removeAttribute('tabindex');
+          el.removeAttribute(this._tabIndexIndicatorAttr);
         }
       }
 
@@ -428,9 +452,10 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
       for (const el of this._focusableElements) {
         const existingTabIndex = el.getAttribute('tabindex');
         el.setAttribute('tabindex', '-1');
+        el.setAttribute(this._tabIndexIndicatorAttr, '');
 
         if (existingTabIndex !== null) {
-          el.setAttribute('__tabindex__', existingTabIndex);
+          el.setAttribute(this._tabIndexAttr, existingTabIndex);
         }
       }
 
@@ -451,31 +476,46 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
    * Initializes event handlers for the closeOnClickOutside and keyClose options.
    */
   private _initCloseListeners(): void {
-    if (this.opened && (this.closeOnClickOutside || this.keyClose)) {
-      // In a timeout so that things render first
-      setTimeout(() => {
-        if (this.closeOnClickOutside && !this._onClickOutsideAttached) {
-          document.addEventListener(this._clickEvent, this._onClickOutside);
-          this._onClickOutsideAttached = true;
-        }
+      this._initCloseClickListener();
+      this._initCloseKeyDownListener();
+  }
 
-        if (this.keyClose && !this._onKeyDownAttached) {
-          document.addEventListener('keydown', this._onKeyDown);
-          this._onKeyDownAttached = true;
-        }
-      });
-    }
+  private _initCloseClickListener(): void {
+    // In a timeout so that things render first
+    setTimeout(() => {
+      if (this.opened && this.closeOnClickOutside && !this._onClickOutsideAttached) {
+        document.addEventListener(this._clickEvent, this._onClickOutside);
+        this._onClickOutsideAttached = true;
+      }
+    });
+  }
+
+  private _initCloseKeyDownListener(): void {
+    // In a timeout so that things render first
+    setTimeout(() => {
+      if (this.opened && this.keyClose && !this._onKeyDownAttached) {
+        document.addEventListener('keydown', this._onKeyDown);
+        this._onKeyDownAttached = true;
+      }
+    });
   }
 
   /**
-   * Destroys the event handlers from _initCloseListeners.
+   * Destroys all event handlers from _initCloseListeners.
    */
   private _destroyCloseListeners(): void {
+    this._destroyCloseClickListener();
+    this._destroyCloseKeyDownListener();
+  }
+
+  private _destroyCloseClickListener(): void {
     if (this._onClickOutsideAttached) {
       document.removeEventListener(this._clickEvent, this._onClickOutside);
       this._onClickOutsideAttached = false;
     }
+  }
 
+  private _destroyCloseKeyDownListener(): void {
     if (this._onKeyDownAttached) {
       document.removeEventListener('keydown', this._onKeyDown);
       this._onKeyDownAttached = false;
@@ -515,7 +555,7 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
       // In a timeout so that things render first
       setTimeout(() => {
         if (!this._onResizeAttached) {
-          window.addEventListener('resize', this._onResize);
+          window.addEventListener('resize', this._collapse);
           this._onResizeAttached = true;
         }
       });
@@ -524,12 +564,12 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
 
   private _destroyCollapseListeners(): void {
     if (this._onResizeAttached) {
-      window.removeEventListener('resize', this._onResize);
+      window.removeEventListener('resize', this._collapse);
       this._onResizeAttached = false;
     }
   }
 
-  private _onResize(): void {
+  private _collapse(): void {
     const winHeight: number = window.innerHeight;
     const winWidth: number = window.innerWidth;
 

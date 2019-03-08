@@ -21,6 +21,7 @@ module.exports = {
   },
 
   resolve: {
+    modules: [path.join(__dirname, 'node_modules')],
     extensions: ['.js', '.ts', '.scss', '.html']
   },
 
@@ -62,7 +63,7 @@ module.exports = {
       filename: 'css/[name].css'
     }),
 
-    new UglifyJSPlugin(),
+    // new UglifyJSPlugin(),
 
     new CopyWebpackPlugin([{
       from: root('public')

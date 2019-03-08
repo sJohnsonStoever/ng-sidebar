@@ -24,7 +24,7 @@ import { isBrowser } from './utils';
       [ngClass]="backdropClass"
       (click)="_onBackdropClicked()"></div>
 
-    <ng-content select="ng-sidebar"></ng-content>
+    <ng-content select="ng-sidebar,[ng-sidebar]"></ng-content>
 
     <div class="ng-sidebar__content"
       [class.ng-sidebar__content--animate]="animate"
@@ -78,6 +78,7 @@ export class SidebarContainer implements AfterContentInit, OnChanges, OnDestroy 
   @Input() allowSidebarBackdropControl: boolean = true;
   @Input() showBackdrop: boolean = false;
   @Output() showBackdropChange = new EventEmitter<boolean>();
+  @Output() onBackdropClicked = new EventEmitter<null>();
 
   @Input() contentClass: string;
   @Input() backdropClass: string;
@@ -155,9 +156,9 @@ export class SidebarContainer implements AfterContentInit, OnChanges, OnDestroy 
       top = 0,
       bottom = 0;
 
-    let transformStyle: string = null;
-    let heightStyle: string = null;
-    let widthStyle: string = null;
+    let transformStyle: string = '';
+    let heightStyle: string = '';
+    let widthStyle: string = '';
 
     for (const sidebar of this._sidebars) {
       // Slide mode: we need to translate the entire container
@@ -225,10 +226,16 @@ export class SidebarContainer implements AfterContentInit, OnChanges, OnDestroy 
    * `closeOnClickBackdrop` option set.
    */
   _onBackdropClicked(): void {
+    let backdropClicked = false;
     for (const sidebar of this._sidebars) {
       if (sidebar.opened && sidebar.showBackdrop && sidebar.closeOnClickBackdrop) {
         sidebar.close();
+        backdropClicked = true;
       }
+    }
+
+    if (backdropClicked) {
+      this.onBackdropClicked.emit();
     }
   }
 
