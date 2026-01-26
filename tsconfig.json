@@ -3,13 +3,15 @@
     "target": "es5",
     "module": "commonjs",
     "moduleResolution": "node",
+    "noUnusedParameters": true,
     "noUnusedLocals": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "declaration": true,
-    "skipLibCheck": true,
-    "outDir": "lib/",
-    "lib": ["dom", "es5", "es2015.core", "es2015.collection", "es2015.promise"]
+    "removeComments": true,
+    "outDir": "lib_commonjs/",
+    "rootDir": "src",
+    "lib": ["dom", "es5", "es2015.core", "es2015.collection", "es2015.iterable", "es2015.promise"]
   },
   "include": [
     "src/**/*"
@@ -17,6 +19,8 @@
   "compileOnSave": false,
   "buildOnSave": false,
   "angularCompilerOptions": {
-    "skipTemplateCodegen": true
+    "decoratorsAs": "static fields",
+    "skipTemplateCodegen": true,
+    "preserveWhitespaces": false
   }
 }

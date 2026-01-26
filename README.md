@@ -1,5 +1,9 @@
 # ng-sidebar
 
+⚠️　**This package is deprecated and not maintained.** ⚠️
+
+---
+
 [![NPM](https://nodei.co/npm/ng-sidebar.png?compact=true)](https://nodei.co/npm/ng-sidebar)
 
 **[Demo](https://echeung.me/ng-sidebar)**
@@ -20,13 +24,13 @@ npm install --save ng-sidebar
 If you're using SystemJS, be sure to add the appropriate settings to your SystemJS config:
 
 ```js
-var map = {
+const map = {
   // ...
   'ng-sidebar': 'node_modules/ng-sidebar',
   // ...
 };
 
-var packages = {
+const packages = {
   // ...
   'ng-sidebar': {
     main: 'lib/index',
@@ -211,6 +215,7 @@ If you are using Angular's default emulated view encapsulation, you may have to 
 
 | Property name | Callback arguments | Description |
 | ------------- | ------------------ | ----------- |
+| onContentInit | | Corresponds with `ngAfterContentInit` lifecycle event of the sidebar component. |
 | openedChange | `opened: boolean` | Emitted when `opened` is modified. This allows for you to do "two-way binding" (i.e. `[(opened)]`). |
 | onOpenStart | | Emitted when the sidebar is opening. |
 | onOpened | | Emitted when the sidebar is opened. |

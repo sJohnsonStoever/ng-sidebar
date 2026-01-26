@@ -1,21 +1,25 @@
 import {
+  AfterContentInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
+  Inject,
   Input,
   OnChanges,
   OnDestroy,
   OnInit,
   Optional,
   Output,
+  PLATFORM_ID,
   SimpleChanges,
   ViewChild
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 
 import { SidebarContainer } from './sidebar-container.component';
-import { isLTR, isIOS, isBrowser } from './utils';
+import { isLTR, isIOS } from './utils';
 
 @Component({
   selector: 'ng-sidebar',
@@ -41,7 +45,7 @@ import { isLTR, isIOS, isBrowser } from './utils';
       position: absolute;
       touch-action: auto;
       will-change: initial;
-      z-index: 99999999;
+      z-index: 2;
     }
 
     .ng-sidebar--left {
@@ -81,7 +85,7 @@ import { isLTR, isIOS, isBrowser } from './utils';
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class Sidebar implements OnInit, OnChanges, OnDestroy {
+export class Sidebar implements AfterContentInit, OnInit, OnChanges, OnDestroy {
   // `openedChange` allows for "2-way" data binding
   @Input() opened: boolean = false;
   @Output() openedChange: EventEmitter<boolean> = new EventEmitter<boolean>();
@@ -109,6 +113,7 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
   @Input() keyClose: boolean = false;
   @Input() keyCode: number = 27; // Default to ESC key
 
+  @Output() onContentInit: EventEmitter<null> = new EventEmitter<null>();
   @Output() onOpenStart: EventEmitter<null> = new EventEmitter<null>();
   @Output() onOpened: EventEmitter<null> = new EventEmitter<null>();
   @Output() onCloseStart: EventEmitter<null> = new EventEmitter<null>();
@@ -121,7 +126,7 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
   @Output() _onRerender: EventEmitter<null> = new EventEmitter<null>();
 
   /** @internal */
-  @ViewChild('sidebar') _elSidebar: ElementRef;
+  @ViewChild('sidebar', {static: false}) _elSidebar: ElementRef;
 
   private _focusableElementsString: string = 'a[href], area[href], input:not([disabled]), select:not([disabled]),' +
     'textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex], [contenteditable]';
@@ -143,7 +148,10 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
 
   private _isBrowser: boolean;
 
-  constructor(@Optional() private _container: SidebarContainer, private _ref: ChangeDetectorRef) {
+  constructor(
+    @Optional() private _container: SidebarContainer,
+    private _ref: ChangeDetectorRef,
+    @Inject(PLATFORM_ID) platformId: Object) {
     if (!this._container) {
       throw new Error(
         '<ng-sidebar> must be inside a <ng-sidebar-container>. ' +
@@ -151,10 +159,10 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
       );
     }
 
-    this._isBrowser = isBrowser();
+    this._isBrowser = isPlatformBrowser(platformId);
 
     // Handle taps in iOS
-    if (this._isBrowser && isIOS() && 'ontouchstart' in window) {
+    if (this._isBrowser && isIOS() && !('onclick' in window)) {
       this._clickEvent = 'touchstart';
     }
 
@@ -169,7 +177,7 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
     this._collapse = this._collapse.bind(this);
   }
 
-  ngOnInit() {
+  ngOnInit(): void {
     if (!this._isBrowser) {
       return;
     }
@@ -184,6 +192,10 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
     if (this.autoCollapseOnInit) {
       this._collapse();
     }
+  }
+
+  ngAfterContentInit(): void {
+    this.onContentInit.emit();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -230,10 +242,6 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
       this.triggerRerender();
     }
 
-    if (changes['autoCollapseHeight'] || changes['autoCollapseWidth']) {
-      this._initCollapseListeners();
-    }
-
     if (changes['opened']) {
       if (this._shouldAnimate) {
         this.animate = true;
@@ -245,6 +253,10 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
       } else {
         this.close();
       }
+    }
+
+    if (changes['autoCollapseHeight'] || changes['autoCollapseWidth']) {
+      this._initCollapseListeners();
     }
   }
 
@@ -396,7 +408,7 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
    * @return {boolean} Trap focus inside sidebar.
    */
   private get _shouldTrapFocus(): boolean {
-    return this.opened && this.trapFocus && this._isModeOver;
+    return this.opened && this.trapFocus;
   }
 
   /**
@@ -476,8 +488,8 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
    * Initializes event handlers for the closeOnClickOutside and keyClose options.
    */
   private _initCloseListeners(): void {
-      this._initCloseClickListener();
-      this._initCloseKeyDownListener();
+    this._initCloseClickListener();
+    this._initCloseKeyDownListener();
   }
 
   private _initCloseClickListener(): void {
@@ -705,7 +717,6 @@ export class Sidebar implements OnInit, OnChanges, OnDestroy {
   get _isLeftOrRight(): boolean {
     return this.position === 'left' || this.position === 'right';
   }
-
 
   /**
    * @internal
